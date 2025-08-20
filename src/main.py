@@ -34,6 +34,19 @@ def shuffle_tiles(tiles):
     for i in range(4): 
         random.shuffle(tiles)
 
+def distribute_tiles(tiles, number):
+
+    E_hand = []
+    S_hand = []
+    W_hand = []
+    N_hand = []
+
+
+    #for hands in range(1, 4):
+        
+
+    return "nothing"
+
 # Example usage
 if __name__ == "__main__":
     
@@ -44,5 +57,11 @@ if __name__ == "__main__":
     
     shuffle_tiles(board)
 
-    print(board)
+    print(f"East wall: {board[:34]}\
+          \nSouth wall: {board[35:68]}\
+          \nWest wall: {board[69:102]}\
+          \nNorth wall: {board[103:136]}\
+          \nDice roll: {random.randint(1, 12)}")
+
+
 
