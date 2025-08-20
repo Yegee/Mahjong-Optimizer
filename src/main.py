@@ -11,7 +11,7 @@ class Tile:
         else:
             return f"{self.value}{self.suit}"
         
-    def __is_honor__(self):
+    def is_honor(self):
         return self.suit == 'honor'
     
 def create_set():
@@ -57,11 +57,10 @@ if __name__ == "__main__":
     
     shuffle_tiles(board)
 
-    print(f"East wall: {board[:34]}\
-          \nSouth wall: {board[35:68]}\
-          \nWest wall: {board[69:102]}\
-          \nNorth wall: {board[103:136]}\
-          \nDice roll: {random.randint(1, 12)}")
-
-
-
+print(
+    f"East wall: {board[:34]}\n"
+    f"South wall: {board[34:68]}\n"
+    f"West wall: {board[68:102]}\n"
+    f"North wall: {board[102:136]}\n"
+    f"Dice roll: {random.randint(1,12)}"
+)
