@@ -28,6 +28,9 @@ class Tile:
             return self.value
         else:
             return f"{self.value}{self.suit}"
+    
+    def is_honor(self):
+        return self.suit == 'honor'
         
        
 def create_set():
@@ -55,8 +58,6 @@ def shuffle_tiles(tiles):
 
         random.shuffle(tiles)
 
-def is_honor(self):
-        return self.suit == 'honor'
 
 def distribute_tiles(board, dice):
 
@@ -152,8 +153,47 @@ def distribute_tiles(board, dice):
     W_hand.append(new_board.pop(0))
     N_hand.append(new_board.pop(0))
 
+    organize_hand(E_hand)
+    organize_hand(S_hand)
+    organize_hand(W_hand)
+    organize_hand(N_hand)
+
     return E_hand, S_hand, W_hand, N_hand, new_board
 
+def organize_hand(hand):
+    '''
+     
+     Organizes a player's hand from lotus, characters, bamboo, winds, then dragons
+     For Winds, the order should be East, South, West, North
+     For dragons, the order should be Red, Green, White
+     Uses Recurrsion and keysort
+
+     hand: A player's head. Expected values are an array of tiles with a size from 1 to 13
+
+     Returns a player hand in the predetermined order. Should be the same size as inserted
+
+    '''
+
+    #Suit Priority
+    suit_order = {'l':0, 'c':1, 'b':2, 'honor':3}
+
+    #Honor Priority
+    honor_order = {'E':0, 'S':1, 'W':2, 'N':3, 'R':4, 'G':5, 'WH':6}
+
+    #Using the Suit/Honor priority, this should set up the tiles in a (key, key) function organize the hand
+    def sort_key(tile):
+
+        if tile.suit != 'honor':
+            return (suit_order[tile.suit], [tile.value])
+        else:
+            return (suit_order['honor'], [tile.value])
+        
+    hand.sort(key = sort_key)
+
+    return hand
+
+
+               
 
 # Example usage
 if __name__ == "__main__":
@@ -186,3 +226,4 @@ print(
     f"North Player: {NP}\n"
     f"Board State: {board}\n"
 )
+
