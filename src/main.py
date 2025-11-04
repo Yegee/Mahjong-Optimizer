@@ -31,8 +31,7 @@ class Tile:
     
     def is_honor(self):
         return self.suit == 'honor'
-        
-       
+              
 def create_set():
     '''
     Creates the 4 of each tile and returns the board in order
@@ -192,8 +191,36 @@ def organize_hand(hand):
 
     return hand
 
+def draw_tile(board, hand):
 
-               
+
+    '''
+    
+    Removes the first tile from the board, then adds it to the hand
+
+    Inputs: Board of the game, Player's hand
+
+    '''
+
+    new_tile = board.pop(0)
+    hand.append(new_tile)
+
+    organize_hand(hand)
+
+def discard_tile(hand, tile):
+    
+    '''
+    
+    Removes a tile from players hand
+
+    hand:Players hand
+    tile: index for tile to discard
+
+    Returns the discarded tile for discard pile 
+
+    '''
+
+    return hand.pop(tile-1)
 
 # Example usage
 if __name__ == "__main__":
@@ -214,16 +241,26 @@ print(
     f"South wall: {board[34:68]}\n"
     f"West wall: {board[68:102]}\n"
     f"North wall: {board[102:136]}\n"
-    f"Dice roll: {dice}"
+    f"Dice roll: {dice}\n"
 )
 
 EP, SP, WP, NP, board = distribute_tiles(board, dice)
 
 print(
-    f"East Player: {EP}\n"
-    f"South Player: {SP}\n"
-    f"West Player: {WP}\n"
-    f"North Player: {NP}\n"
-    f"Board State: {board}\n"
+    f"East Player: {EP}\n\n"
+    f"South Player: {SP}\n\n"
+    f"West Player: {WP}\n\n"
+    f"North Player: {NP}\n\n"
+    f"Board State: {board}\n\n"
 )
 
+draw_tile(board, EP)
+
+print(f"East Player after Draw{EP}\n\n")
+
+# ToDO: Change this to tile rather than index
+index = int(input("Enter Index for discard: \n"))
+
+discard_tile(EP, index)
+
+print(f"East Player after discard{EP}\n\n")
