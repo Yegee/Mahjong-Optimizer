@@ -220,12 +220,25 @@ def discard_tile(hand, tile):
 
     '''
 
-    return hand.pop(tile-1)
+    tile_to_discard = next(
+        (
+            t for t in hand
+            if (t.suit == 'honor' and t.value == tile)
+            or (f"{t.value}{t.suit}" == tile)
+        ),
+        None
+    )
+
+    if tile_to_discard:
+        hand.remove(tile_to_discard)
+
+    return tile_to_discard
 
 # Example usage
 if __name__ == "__main__":
     
     board = create_set()
+    discard_pile = []
 
     print("Board: ", board, "\n")
     print("Shuffling board...\n")
@@ -258,9 +271,16 @@ draw_tile(board, EP)
 
 print(f"East Player after Draw{EP}\n\n")
 
-# ToDO: Change this to tile rather than index
-index = int(input("Enter Index for discard: \n"))
+while True:
+    discard_input = input("Enter tile for discard: \n").strip()
 
-discard_tile(EP, index)
+    discarded = discard_tile(EP, discard_input)
 
-print(f"East Player after discard{EP}\n\n")
+    if discarded:
+        print(f"\nDiscarded {discarded}")
+        break
+    else:
+        print("Tile not found in hand. Please enter a valid tile from your hand.")
+
+
+print(f"East Player after discard: {EP}\n\n")
