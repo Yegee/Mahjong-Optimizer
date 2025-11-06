@@ -233,7 +233,7 @@ while board:
     current_hand = hands[turn % 4]
 
     draw_tile(board, current_hand)
-    discarded = temp_discard_tile(current_hand, 0)
+    discard_pile.append(temp_discard_tile(current_hand, 0))
 
 
 # TODO: check for win conditions
@@ -248,7 +248,7 @@ print(f"Hands:\n\n"
       f"South: {hands[1]}\n\n"
       f"West: {hands[2]}\n\n"
       f"North: {hands[3]}\n\n"
-      
+      f"Discard: {discard_pile}\n\n"
       )
 
 
