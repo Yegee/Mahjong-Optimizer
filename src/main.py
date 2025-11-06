@@ -73,91 +73,24 @@ def distribute_tiles(board, dice):
     
     '''
 
-    E_hand = []
-    S_hand = []
-    W_hand = []
-    N_hand = []
+    start_index = (dice * 2) % len(board)
+    board = board[start_index:] + board[:start_index]
 
-    E_wall = board[:34]
-    S_wall = board[34:68]
-    W_wall = board[68:102]
-    N_wall = board[102:136]
+    dead_wall = board[-14:]
+    live_wall = board[:-14]
+    #Uses hash to make for simplier coding
+    hands = {p: [] for p in ('E', 'S', 'W', 'N')}
 
+    #Simplified to just calculate the starting indexes
+    for _ in range(3):
+        for p in hands:
+            hands[p].extend([live_wall.pop(0) for _ in range(4)])
 
-    deadwall_index = 0
-    starting_index = 0
-    
-    if (dice == 5)or (dice == 9):
+    for p in hands:
+        hands[p].append(live_wall.pop(0))
+        organize_hand(hands[p])
 
-        starting_index = (dice*2)
-        deadwall_index = (starting_index - 1)
-        while deadwall_index < 13:
-            E_wall.insert(0, N_wall.pop(-1))
-            deadwall_index += 1
-            starting_index += 1
-
-        new_board = E_wall + S_wall + W_wall + N_wall
-
-        
-
-    elif (dice == 2) or (dice == 6) or (dice == 10):
-
-        starting_index = (dice*2)
-        deadwall_index = (starting_index - 1)
-        while deadwall_index < 13:
-            S_wall.insert(0, E_wall.pop(-1))
-            deadwall_index += 1
-            starting_index += 1
-
-        new_board = S_wall + W_wall + N_wall + E_wall
-
-            
-    elif (dice == 3) or (dice == 7) or (dice == 11):
-
-        starting_index = (dice*2)
-        deadwall_index = (starting_index - 1)
-        while deadwall_index < 13:
-            W_wall.insert(0, S_wall.pop(-1))
-            deadwall_index += 1
-            starting_index += 1
-        
-        new_board = W_wall + N_wall + E_wall + S_wall
-
-
-    elif (dice == 4) or (dice == 8) or (dice == 12):
-
-        starting_index = (dice*2)
-        deadwall_index = (starting_index - 1)
-        while deadwall_index < 13:
-            N_wall.insert(0, W_wall.pop(-1))
-            deadwall_index += 1
-            starting_index += 1
-
-        new_board = N_wall + E_wall + S_wall + W_wall 
-
-
-    while starting_index != 0:
-            new_board.append(new_board.pop(0))
-            starting_index -= 1
-    
-    for player in range(3):
-
-        for i in range(4): E_hand.append(new_board.pop(0))
-        for i in range(4): S_hand.append(new_board.pop(0))
-        for i in range(4): W_hand.append(new_board.pop(0))
-        for i in range(4): N_hand.append(new_board.pop(0))
-    
-    E_hand.append(new_board.pop(0))
-    S_hand.append(new_board.pop(0))
-    W_hand.append(new_board.pop(0))
-    N_hand.append(new_board.pop(0))
-
-    organize_hand(E_hand)
-    organize_hand(S_hand)
-    organize_hand(W_hand)
-    organize_hand(N_hand)
-
-    return E_hand, S_hand, W_hand, N_hand, new_board
+    return hands['E'], hands['S'], hands['W'], hands['N'], live_wall, dead_wall
 
 def organize_hand(hand):
     '''
@@ -200,6 +133,8 @@ def draw_tile(board, hand):
 
     Inputs: Board of the game, Player's hand
 
+    return None
+
     '''
 
     new_tile = board.pop(0)
@@ -213,8 +148,8 @@ def discard_tile(hand, tile):
     
     Removes a tile from players hand
 
-    hand:Players hand
-    tile: index for tile to discard
+    hand: Players hand
+    tile: Tile to discard
 
     Returns the discarded tile for discard pile 
 
@@ -231,6 +166,26 @@ def discard_tile(hand, tile):
 
     if tile_to_discard:
         hand.remove(tile_to_discard)
+
+    return tile_to_discard
+
+
+def temp_discard_tile(hand, index):
+    
+    '''
+
+    DELETE LATER
+    
+    A temporary function that will only ask for index to remove
+
+    hand:Players hand
+    tile: index for tile to discard
+
+    Returns the discarded tile for discard pile 
+
+    '''
+
+    tile_to_discard = hand.pop(index)
 
     return tile_to_discard
 
@@ -257,30 +212,62 @@ print(
     f"Dice roll: {dice}\n"
 )
 
-EP, SP, WP, NP, board = distribute_tiles(board, dice)
+EP, SP, WP, NP, board, deadwall = distribute_tiles(board, dice)
+hands = [EP, SP, WP, NP]
 
 print(
-    f"East Player: {EP}\n\n"
-    f"South Player: {SP}\n\n"
-    f"West Player: {WP}\n\n"
-    f"North Player: {NP}\n\n"
+    f"East Player: {hands[0]}\n\n"
+    f"South Player: {hands[1]}\n\n"
+    f"West Player: {hands[2]}\n\n"
+    f"North Player: {hands[3]}\n\n"
     f"Board State: {board}\n\n"
+    f"DeadWall: {deadwall}(Dora is {deadwall[-6]})\n\n"
 )
 
-draw_tile(board, EP)
+#Helps the count for the player's turn
+turn = 0
+players = ["East", "South", "West", "North"]
 
-print(f"East Player after Draw{EP}\n\n")
+while board:
+    current_player = players[turn % 4]
+    current_hand = hands[turn % 4]
 
-while True:
-    discard_input = input("Enter tile for discard: \n").strip()
-
-    discarded = discard_tile(EP, discard_input)
-
-    if discarded:
-        print(f"\nDiscarded {discarded}")
-        break
-    else:
-        print("Tile not found in hand. Please enter a valid tile from your hand.")
+    draw_tile(board, current_hand)
+    discarded = temp_discard_tile(current_hand, 0)
 
 
-print(f"East Player after discard: {EP}\n\n")
+# TODO: check for win conditions
+# if check_yaku(current_hand):
+#     winner = current_player
+#     break
+
+    turn += 1  # Move to next player
+
+print(f"Hands:\n\n"
+      f"East: {hands[0]}\n\n"
+      f"South: {hands[1]}\n\n"
+      f"West: {hands[2]}\n\n"
+      f"North: {hands[3]}\n\n"
+      
+      )
+
+
+
+
+# draw_tile(board, EP)
+
+# print(f"East Player after Draw{EP}\n\n")
+
+# while True:
+#     discard_input = input("Enter tile for discard: \n").strip()
+
+#     discarded = discard_tile(EP, discard_input)
+
+#     if discarded:
+#         print(f"\nDiscarded {discarded}")
+#         break
+#     else:
+#         print("Tile not found in hand. Please enter a valid tile from your hand.")
+
+
+# print(f"East Player after discard: {EP}\n\n")
