@@ -189,6 +189,8 @@ def temp_discard_tile(hand, index):
 
     return tile_to_discard
 
+
+#TODO: Fix sequeces that are longer than 3
 def find_Sequence_or_Triplets(hand):
     '''
     
@@ -331,3 +333,4 @@ for i in range(0,4):
 
 
 # print(f"East Player after discard: {EP}\n\n")
+
