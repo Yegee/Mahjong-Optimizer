@@ -1,4 +1,6 @@
 import random
+from colorama import Fore, Style, init
+init(autoreset=True)
 
 class Tile:
     def __init__(self, suit, value):
@@ -122,8 +124,6 @@ def organize_hand(hand):
         
     hand.sort(key = sort_key)
 
-    return hand
-
 def draw_tile(board, hand):
 
 
@@ -189,6 +189,72 @@ def temp_discard_tile(hand, index):
 
     return tile_to_discard
 
+def find_Sequence_or_Triplets(hand):
+    '''
+    
+    Finds all of the triplets and sequences and color coat it for clarity
+    If neither, return normal. Turns the hand to colors respecting if it is a sequence or triplets
+
+    hand: Player's hand
+
+    Return: none
+
+    '''
+
+    labels = {tile: None for tile in hand}
+
+    #Checks for Triplets
+    counted = {}
+    for tile in hand:
+        key = (tile.suit, tile.value)
+        counted[key] = counted.get(key, 0) + 1
+    for tile in hand:
+        if counted.get((tile.suit, tile.value), 0) == 4:
+            labels[tile] = "Kan"
+        elif counted.get((tile.suit, tile.value), 0) == 3:
+            labels[tile] = "Triplet"
+        
+    #Check for sequences 
+    suits = {'c': [], 'l': [], 'b': []}
+    for tile in hand:
+        if tile.suit in suits:
+            suits[tile.suit].append(tile)
+    for suits, tiles in suits.items():
+        tiles.sort(key = lambda t : t.value)
+        value = [t.value for t in tiles]
+
+        for i in range(len(value) - 2):
+            a, b ,c = value[i:i+3]
+            if b == a+1 and c == b + 1:
+
+                for t in tiles: 
+                    if t.value in (a,b,c):
+                        labels[t] = "Sequence"
+    return labels
+
+def change_hand_with_color(hand):
+    labels = find_Sequence_or_Triplets(hand)
+    output = []
+
+    for tile in hand:
+        tag = labels[tile]
+        color = {
+            "Triplet": Fore.GREEN,
+            "Kan": Fore.RED,
+            "Sequence": Fore.BLUE
+        }.get(tag, Fore.WHITE)
+
+        output.append(f"{color}{tile}{Style.RESET_ALL}")
+    return output
+
+#Fixes change_hand_with_color
+def display_hand(hand):
+    """
+    Displays the player's hand in color without changing the actual hand objects.
+    """
+    colored_hand = change_hand_with_color(hand)
+    print(" ".join(colored_hand))
+    
 # Example usage
 if __name__ == "__main__":
     
@@ -215,18 +281,16 @@ print(
 EP, SP, WP, NP, board, deadwall = distribute_tiles(board, dice)
 hands = [EP, SP, WP, NP]
 
-print(
-    f"East Player: {hands[0]}\n\n"
-    f"South Player: {hands[1]}\n\n"
-    f"West Player: {hands[2]}\n\n"
-    f"North Player: {hands[3]}\n\n"
-    f"Board State: {board}\n\n"
-    f"DeadWall: {deadwall}(Dora is {deadwall[-6]})\n\n"
-)
 
 #Helps the count for the player's turn
 turn = 0
-players = ["East", "South", "West", "North"]
+players = ["East Player", "South Player", "West Player", "North Player"]
+
+for i in range(0,4):
+    print(f"{players[i]}'s hand:")
+    display_hand(hands[i])
+    print("\n")    
+
 
 while board:
     current_player = players[turn % 4]
@@ -243,14 +307,10 @@ while board:
 
     turn += 1  # Move to next player
 
-print(f"Hands:\n\n"
-      f"East: {hands[0]}\n\n"
-      f"South: {hands[1]}\n\n"
-      f"West: {hands[2]}\n\n"
-      f"North: {hands[3]}\n\n"
-      f"Discard: {discard_pile}\n\n"
-      )
-
+for i in range(0,4):
+    print(f"{players[i]}'s hand:")
+    display_hand(hands[i])
+    print("\n")    
 
 
 
