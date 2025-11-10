@@ -33,6 +33,36 @@ class Tile:
     
     def is_honor(self):
         return self.suit == 'honor'
+    
+class Player:
+    def __init__(self, name, hand):
+
+        '''
+        
+        Creates the tile Player
+
+        name: The name of the player is the seat they are in. i.e East, South, West, North.
+        hand: The player hand organized.
+
+        '''
+        self.name = name
+        self.hand = hand
+
+    def show_hand(self):
+        '''
+        
+        Returns the player's hand
+
+        '''
+        return self.hand
+    
+    def show_seat(self):
+        '''
+        
+        Returns the player's seat or name
+        
+        '''
+        
               
 def create_set():
     '''
@@ -259,7 +289,30 @@ def display_hand(hand):
     Displays the player's hand in color without changing the actual hand objects.
     """
     colored_hand = change_hand_with_color(hand)
-    print(" ".join(colored_hand))
+    print(" ".join(colored_hand), end = "\n\n")
+    
+#TODO pitch correctly
+def play_game(players, board):
+
+    #Helps the count for the player's turn
+    turn = 0  
+
+    #Draw pitch test
+    while board:
+        current_player = players[turn % 4]
+        if (turn % 4) == 0:
+            print(f"Turn: {turn}")
+
+        draw_tile(board, current_player.hand)
+        discard = random.choice(current_player.hand)
+        current_player.hand.remove(discard)
+        discard_pile.append(random.choice(current_player.hand))
+        display_hand(current_player.hand)
+    
+        
+        turn += 1  # Move to next player`
+
+        
     
 # Example usage
 if __name__ == "__main__":
@@ -272,80 +325,42 @@ if __name__ == "__main__":
     
     shuffle_tiles(board)
 
+    dice = random.randint(2,12)
 
+    print(f"Starting hands:\n"
+        f"East wall: {board[:34]}\n"
+        f"South wall: {board[34:68]}\n"
+        f"West wall: {board[68:102]}\n"
+        f"North wall: {board[102:136]}\n"
+        f"Dice roll: {dice}\n"
+    )
 
-dice = random.randint(2,12)
+    EP, SP, WP, NP, board, deadwall = distribute_tiles(board, dice)
+    players = [
+    Player("East", EP),
+    Player("South", SP),
+    Player("West", WP),
+    Player("North", NP)
+    ]
 
-print(f"Starting hands:\n"
-    f"East wall: {board[:34]}\n"
-    f"South wall: {board[34:68]}\n"
-    f"West wall: {board[68:102]}\n"
-    f"North wall: {board[102:136]}\n"
-    f"Dice roll: {dice}\n"
-)
+    for i in range(4):
+        print(f"{players[i].name}'s hand: ", end ='')
+        display_hand(players[i].hand)
+        print("\n")
 
-EP, SP, WP, NP, board, deadwall = distribute_tiles(board, dice)
-hands = [EP, SP, WP, NP]
+    play_game(players, board)
 
+    for i in range(4):
+            print(f"{players[i].name}'s hand: ", end ='')
+            display_hand(players[i].hand)
+    
+    testHand = [
+        Tile('b', 1), Tile('b', 2), Tile('b', 3),       # Sequence (Blue)
+        Tile('b', 4), Tile('b', 1), Tile('b', 1),       # Triplet (Green)
+        Tile('b', 5), Tile('l', 8), Tile('l', 9),       # Sequence (Blue)
+        Tile('honor', 'R'), Tile('honor', 'R'),         # Part of Kan (Red)
+        Tile('honor', 'R'), Tile('honor', 'R') ]
 
-#Helps the count for the player's turn
-turn = 0
-players = ["East Player", "South Player", "West Player", "North Player"]
-
-for i in range(0,4):
-    print(f"{players[i]}'s hand:", end = " ")
-    display_hand(hands[i])
-    print("\n")    
-
-
-#Draw pitch test
-while board:
-    current_player = players[turn % 4]
-    current_hand = hands[turn % 4]
-
-    draw_tile(board, current_hand)
-    discard_pile.append(temp_discard_tile(current_hand, 0))
-
-
-# TODO: check for win conditions
-# if check_yaku(current_hand):
-#     winner = current_player
-#     break
-
-    turn += 1  # Move to next player
-
-for i in range(0,4):
-    print(f"{players[i]}'s hand:", end = " ")
-    display_hand(hands[i])
-    print("\n")    
-
-
-
-# draw_tile(board, EP)
-
-# print(f"East Player after Draw{EP}\n\n")
-
-# while True:
-#     discard_input = input("Enter tile for discard: \n").strip()
-
-#     discarded = discard_tile(EP, discard_input)
-
-#     if discarded:
-#         print(f"\nDiscarded {discarded}")
-#         break
-#     else:
-#         print("Tile not found in hand. Please enter a valid tile from your hand.")
-
-
-# print(f"East Player after discard: {EP}\n\n")
-
-testHand = [
-    Tile('b', 1), Tile('b', 2), Tile('b', 3),       # Sequence (Blue)
-    Tile('b', 4), Tile('b', 1), Tile('b', 1),     # Triplet (Green)
-    Tile('b', 5), Tile('l', 8), Tile('l', 9),       # Sequence (Blue)
-    Tile('honor', 'R'), Tile('honor', 'R'),         # Part of Kan (Red)
-    Tile('honor', 'R'), Tile('honor', 'R') ]
-
-organize_hand(testHand)
-print(f"Test hand:")
-display_hand(testHand)
+    organize_hand(testHand)
+    print(f"Test hand:", end= " ")
+    display_hand(testHand)
