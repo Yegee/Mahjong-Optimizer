@@ -84,7 +84,7 @@ def distribute_tiles(board, dice):
     hands = {p: [] for p in ('E', 'S', 'W', 'N')}
 
     #Simplified to just calculate the starting indexes
-    for _ in range(3):
+    for i in range(3):
         for p in hands:
             hands[p].extend([live_wall.pop(0) for _ in range(4)])
 
@@ -190,7 +190,7 @@ def temp_discard_tile(hand, index):
     return tile_to_discard
 
 
-#TODO: Fix sequeces that are longer than 3
+#Note: Sequences that are 4 or 5 will highlight all of the tiles. i.e, 1c, 2c, 3c, 4c, 5c will have all 5 highlighted. Helps the player know that they have possibly two sequences
 def find_Sequence_or_Triplets(hand):
     '''
     
@@ -223,15 +223,19 @@ def find_Sequence_or_Triplets(hand):
             suits[tile.suit].append(tile)
     for suits, tiles in suits.items():
         tiles.sort(key = lambda t : t.value)
-        value = [t.value for t in tiles]
+        values = [t.value for t in tiles]
 
-        for i in range(len(value) - 2):
-            a, b ,c = value[i:i+3]
-            if b == a+1 and c == b + 1:
-
-                for t in tiles: 
-                    if t.value in (a,b,c):
-                        labels[t] = "Sequence"
+        # detect every 3-tile consecutive sequence
+        for i in range(len(values) - 2):
+            a, b, c = values[i:i+3]
+            if b == a + 1 and c == b + 1:
+                used = {a, b, c}
+                for t in tiles:
+                    if t.value in used:
+                        # don't overwrite triplets or kans
+                        if labels[t] not in ("Triplet", "Kan"):
+                            labels[t] = "Sequence"
+        
     return labels
 
 def change_hand_with_color(hand):
@@ -272,7 +276,7 @@ if __name__ == "__main__":
 
 dice = random.randint(2,12)
 
-print(
+print(f"Starting hands:\n"
     f"East wall: {board[:34]}\n"
     f"South wall: {board[34:68]}\n"
     f"West wall: {board[68:102]}\n"
@@ -289,11 +293,12 @@ turn = 0
 players = ["East Player", "South Player", "West Player", "North Player"]
 
 for i in range(0,4):
-    print(f"{players[i]}'s hand:")
+    print(f"{players[i]}'s hand:", end = " ")
     display_hand(hands[i])
     print("\n")    
 
 
+#Draw pitch test
 while board:
     current_player = players[turn % 4]
     current_hand = hands[turn % 4]
@@ -310,7 +315,7 @@ while board:
     turn += 1  # Move to next player
 
 for i in range(0,4):
-    print(f"{players[i]}'s hand:")
+    print(f"{players[i]}'s hand:", end = " ")
     display_hand(hands[i])
     print("\n")    
 
@@ -334,3 +339,13 @@ for i in range(0,4):
 
 # print(f"East Player after discard: {EP}\n\n")
 
+testHand = [
+    Tile('b', 1), Tile('b', 2), Tile('b', 3),       # Sequence (Blue)
+    Tile('b', 4), Tile('b', 1), Tile('b', 1),     # Triplet (Green)
+    Tile('b', 5), Tile('l', 8), Tile('l', 9),       # Sequence (Blue)
+    Tile('honor', 'R'), Tile('honor', 'R'),         # Part of Kan (Red)
+    Tile('honor', 'R'), Tile('honor', 'R') ]
+
+organize_hand(testHand)
+print(f"Test hand:")
+display_hand(testHand)
