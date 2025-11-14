@@ -310,10 +310,121 @@ def play_game(players, board):
         display_hand(current_player.hand)
     
         
-        turn += 1  # Move to next player`
+        turn += 1  # Move to next player
 
-        
+#Counts the hand efficiently for tiles
+def hand_to_counts(hand):
+    counts = {}
+    for t in hand:
+        key = (t.suit, t.value)
+        counts[key] = counts.get(key, 0) + 1
+    return counts
+
+def is_standard_hand(hand):
+    if len(hand) != 14:
+        return False
     
+    counts = hand_to_counts(hand)
+
+    for tile in list(counts.keys()):
+        #This is for checking every possible pair in the hand. If there's not more than 2, it will ignore the tile and go next
+        if counts[tile] >= 2:
+            counts[tile] -= 2
+
+            #TODO: Melds
+            
+            counts[tile] += 2  # restore and try next
+
+    return False
+
+def check_with_melds(counts):
+    '''
+    
+    Checks if hand has valid sequences/triplets. If a triplet/sequence/Kan is found, uses recursive with the rest of the count
+    until there is nothing left or is not a valid hand
+
+    count: The tiles in the player hands that does not include the pair
+
+    returns Boolean
+    
+    '''
+    #This checks if there is anything else to check
+    if sum(counts.values()) == 0:
+        return True
+    
+    #Picks the top tile to see if there is a sequence or triplet
+    tile = next(t for t in counts if counts[t] > 0)
+    suit, value = tile  
+
+    #Checks Kan
+    if counts[tile] == 4:
+        counts[tile] -= 4
+        if check_with_melds(counts):
+            return True
+        counts[tile] += 4
+    
+    # Check triplet
+    if counts[tile] >= 3:
+        counts[tile] -= 3
+        if check_with_melds(counts):
+            return True
+        counts[tile] += 3
+
+    # Check sequence (only if suit tile)
+    if suit != "honor":
+        t2 = (suit, value + 1)
+        t3 = (suit, value + 2)
+        if counts[t2] > 0 and counts[t3] > 0:
+            counts[tile] -= 1
+            counts[t2] -= 1
+            counts[t3] -= 1
+            if check_with_melds(counts):
+                return True
+            counts[tile] += 1
+            counts[t2] += 1
+            counts[t3] += 1
+
+    return False
+
+def is_tenpai(hand):
+    '''
+    
+    Checks if the player is one tile away from winning
+
+    hand: The player's hand
+
+    Returns the waits if hand is possible to win with
+    
+    '''
+    waits = set()
+
+    for suit in ['c', 'l', 'b', 'honor']:
+        if suit == 'honor':
+            possible = ['E','S','W','N', 'WH', 'G', 'R']
+        else:
+            possible = range(1,10)
+
+        for tile in possible:
+            fake = Tile(suit, tile)
+            if check_win_with_tile(hand,fake):
+                waits.add(fake)
+    
+    return waits
+
+def check_win_with_tile(hand, tile):
+    '''
+
+    Adds the tile to the hand and tests it to see if it wins
+    
+    hand: The player's hand
+    tile: The tile that is considered to win with
+
+    return Boolean
+    '''
+    
+    test_hand = hand[:] + [tile]
+    return is_standard_hand(test_hand)
+
 # Example usage
 if __name__ == "__main__":
     
@@ -354,13 +465,13 @@ if __name__ == "__main__":
             print(f"{players[i].name}'s hand: ", end ='')
             display_hand(players[i].hand)
     
-    testHand = [
-        Tile('b', 1), Tile('b', 2), Tile('b', 3),       # Sequence (Blue)
-        Tile('b', 4), Tile('b', 1), Tile('b', 1),       # Triplet (Green)
-        Tile('b', 5), Tile('l', 8), Tile('l', 9),       # Sequence (Blue)
-        Tile('honor', 'R'), Tile('honor', 'R'),         # Part of Kan (Red)
-        Tile('honor', 'R'), Tile('honor', 'R') ]
+# testHand = [
+#     Tile('b', 1), Tile('b', 2), Tile('b', 3),       # Sequence (Blue)
+#     Tile('b', 4), Tile('b', 1), Tile('b', 1),       # Triplet (Green)
+#     Tile('b', 5), Tile('l', 8), Tile('l', 9),       # Sequence (Blue)
+#     Tile('honor', 'R'), Tile('honor', 'R'),         # Part of Kan (Red)
+#     Tile('honor', 'R'), Tile('honor', 'R') ]
 
-    organize_hand(testHand)
-    print(f"Test hand:", end= " ")
-    display_hand(testHand)
+# organize_hand(testHand)
+# print(f"Test hand:", end= " ")
+# display_hand(testHand)
