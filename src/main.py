@@ -34,6 +34,7 @@ class Tile:
     def is_honor(self):
         return self.suit == 'honor'
     
+    
 class Player:
     def __init__(self, name, hand):
 
@@ -331,11 +332,20 @@ def is_standard_hand(hand):
         if counts[tile] >= 2:
             counts[tile] -= 2
 
-            #TODO: Melds
-            
+            if check_with_melds(counts):
+                return True
+
             counts[tile] += 2  # restore and try next
 
     return False
+
+# --- helper: deterministic order for suits ---
+_SUITS_ORDER = {'l': 0, 'c': 1, 'b': 2, 'honor': 3}
+
+def _tile_sort_key(tile):
+    suit, value = tile
+    val_key = value if isinstance(value, int) else 0
+    return (_SUITS_ORDER.get(suit, 99), val_key)
 
 def check_with_melds(counts):
     '''
@@ -353,8 +363,12 @@ def check_with_melds(counts):
         return True
     
     #Picks the top tile to see if there is a sequence or triplet
-    tile = next(t for t in counts if counts[t] > 0)
-    suit, value = tile  
+    # pick the smallest tile (deterministic) that still has count > 0
+    nonzero = [t for t, c in counts.items() if c > 0]
+    if not nonzero:
+        return True
+    tile = min(nonzero, key=_tile_sort_key)
+    suit, value = tile
 
     #Checks Kan
     if counts[tile] == 4:
@@ -371,10 +385,10 @@ def check_with_melds(counts):
         counts[tile] += 3
 
     # Check sequence (only if suit tile)
-    if suit != "honor":
+    if suit != "honor" and isinstance(value, int) and value <= 7:
         t2 = (suit, value + 1)
         t3 = (suit, value + 2)
-        if counts[t2] > 0 and counts[t3] > 0:
+        if counts.get(t2, 0) > 0 and counts.get(t3, 0) > 0:
             counts[tile] -= 1
             counts[t2] -= 1
             counts[t3] -= 1
@@ -396,7 +410,7 @@ def is_tenpai(hand):
     Returns the waits if hand is possible to win with
     
     '''
-    waits = set()
+    waits = []
 
     for suit in ['c', 'l', 'b', 'honor']:
         if suit == 'honor':
@@ -407,8 +421,15 @@ def is_tenpai(hand):
         for tile in possible:
             fake = Tile(suit, tile)
             if check_win_with_tile(hand,fake):
-                waits.add(fake)
-    
+                waits.append(fake)
+    if len(waits) == 0:
+        return "Not valid"
+
+    # Sort waits by suit priority, then tile value
+    waits.sort(key=lambda t: (
+        _SUITS_ORDER[t.suit],
+        t.value if isinstance(t.value, int) else 0
+    ))     
     return waits
 
 def check_win_with_tile(hand, tile):
@@ -465,13 +486,29 @@ if __name__ == "__main__":
             print(f"{players[i].name}'s hand: ", end ='')
             display_hand(players[i].hand)
     
-# testHand = [
-#     Tile('b', 1), Tile('b', 2), Tile('b', 3),       # Sequence (Blue)
-#     Tile('b', 4), Tile('b', 1), Tile('b', 1),       # Triplet (Green)
-#     Tile('b', 5), Tile('l', 8), Tile('l', 9),       # Sequence (Blue)
-#     Tile('honor', 'R'), Tile('honor', 'R'),         # Part of Kan (Red)
-#     Tile('honor', 'R'), Tile('honor', 'R') ]
+
 
 # organize_hand(testHand)
 # print(f"Test hand:", end= " ")
 # display_hand(testHand)
+
+winning_hand = [
+    Tile('c', 1), Tile('c', 2), Tile('c', 3),          # 1-2-3 chars
+    Tile('l', 4), Tile('l', 5), Tile('l', 6),          # 4-5-6 lotus
+    Tile('b', 7), Tile('b', 8), Tile('b', 9),          # 7-8-9 bamboo
+    Tile('l', 3), Tile('l', 3), Tile('l', 3),          # triplet of 3 lotus
+    Tile('b', 2), Tile('b', 2)                         # pair of 2 bamboo
+]
+
+tenpai_hand = [
+    Tile('c', 2), Tile('c', 3), Tile('c', 4) ,          
+    Tile('c', 5), Tile('c', 6),                        # needs 6c
+    Tile('l', 7), Tile('l', 8), Tile('l', 9),          # 7-8-9 lotus
+    Tile('b', 2), Tile('b', 3), Tile('b', 4),          # 2-3-4 bamboo
+    Tile('l', 5), Tile('l', 5)                         # pair
+]
+
+# print(is_standard_hand(winning_hand))
+
+display_hand(tenpai_hand)
+print(is_tenpai(tenpai_hand))
