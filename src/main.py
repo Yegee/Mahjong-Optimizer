@@ -315,6 +315,18 @@ def play_game(players, board):
 
 #Counts the hand efficiently for tiles
 def hand_to_counts(hand):
+
+    '''
+    
+    Counts the tiles in hand to make makes a list of numbers for easier counting for checking for valid winning hand
+
+    hand: The hand with 14 tiles.
+
+    returns a Hash of tiles and the amount.
+
+    
+    '''
+
     counts = {}
     for t in hand:
         key = (t.suit, t.value)
@@ -322,6 +334,17 @@ def hand_to_counts(hand):
     return counts
 
 def is_standard_hand(hand):
+    '''
+
+    Checks if the hand is a standard hand to win. As of now, it checks if the hand has a standard full 14 tile hand that consists of full sequences or triples 
+
+    hand: The hand that that possibly has 14 tiles. If hand does not have 14 tiles, return False
+
+    returns Boolean
+
+    
+    '''
+
     if len(hand) != 14:
         return False
     
