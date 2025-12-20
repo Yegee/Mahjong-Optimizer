@@ -2,6 +2,61 @@ import random
 from colorama import Fore, Style, init
 init(autoreset=True)
 
+class Game:
+    def __init__(self,player, wall, deadwall):
+        self.wall = wall
+        self.dead_wall = deadwall
+        self.players = player
+        self.discard_pile = []
+        self.current_turn = 0
+        self.last_discard = None
+        self.last_discarder = None
+
+    def take_turn(self):
+        player = self.players[self.current_turn]
+
+        draw_tile(self.wall, player.hand)
+
+        #Temporary, Delete Later
+
+        discard = random.choice(player.hand)
+        player.hand.remove(discard)
+
+        self.last_discard = discard
+        self.last_discarder = self.current_turn
+        self.discard_pile.append(discard) 
+
+        print(f"{player.name} discarded {discard}")
+
+
+        #Call check
+        calls = self.detect_calls()
+        if calls:
+            print("Possible calls:", calls)
+        else:
+            print("No calls")
+
+    def detect_calls(self):
+        calls = []
+        tile = self.last_discard
+        for i, player in enumerate(self.players):
+            
+            #If the check is on the current player, skip
+            if i == self.last_discarder:
+                continue
+
+            #Ron Check
+            if check_win_with_tile(player.hand, tile):
+                calls.append(("RON", self.players[i].name))
+
+            #Pon
+            count = sum(1 for t in player.hand if t.suit == tile.suit and t.value == tile.value)
+            if count == 2:
+                calls.append(("PON",  self.players[i].name))
+        
+        return calls
+    
+
 class Tile:
     def __init__(self, suit, value):
 
@@ -470,7 +525,7 @@ def check_win_with_tile(hand, tile):
     return is_standard_hand(test_hand)
 
 # Example usage
-if __name__ == "__main__":
+# if __name__ == "__main__":
     
     board = create_set()
     discard_pile = []
@@ -509,29 +564,25 @@ if __name__ == "__main__":
             print(f"{players[i].name}'s hand: ", end ='')
             display_hand(players[i].hand)
     
+def test_take_turn_and_check_calls():
+    p0 = Player("East", [Tile('honor', 'E')])
 
+    p1 = Player("South", [
+        Tile('c', 1), Tile('c', 2), Tile('c', 3),
+        Tile('c', 4), Tile('c', 5), Tile('c', 6),
+        Tile('b', 2), Tile('b', 3), Tile('b', 4),
+        Tile('l', 7), Tile('l', 8), Tile('l', 9),
+        Tile('honor', 'E')
+    ])
 
-# organize_hand(testHand)
-# print(f"Test hand:", end= " ")
-# display_hand(testHand)
+    p2 = Player("West", [Tile('honor', 'E'), Tile('honor', 'E')])
+    p3 = Player("North", [])
 
-winning_hand = [
-    Tile('c', 1), Tile('c', 2), Tile('c', 3),          # 1-2-3 chars
-    Tile('l', 4), Tile('l', 5), Tile('l', 6),          # 4-5-6 lotus
-    Tile('b', 7), Tile('b', 8), Tile('b', 9),          # 7-8-9 bamboo
-    Tile('l', 3), Tile('l', 3), Tile('l', 3),          # triplet of 3 lotus
-    Tile('b', 2), Tile('b', 2)                         # pair of 2 bamboo
-]
+    players = [p0, p1, p2, p3]
+    wall = [Tile('honor', 'E')]
+    dead_wall = []  
 
-tenpai_hand = [
-    Tile('c', 2), Tile('c', 3), Tile('c', 4) ,          
-    Tile('c', 5), Tile('c', 6),                        # needs 6c
-    Tile('l', 7), Tile('l', 8), Tile('l', 9),          # 7-8-9 lotus
-    Tile('b', 2), Tile('b', 3), Tile('b', 4),          # 2-3-4 bamboo
-    Tile('l', 5), Tile('l', 5)                         # pair
-]
+    game = Game(players, wall,dead_wall)
+    game.take_turn()
 
-# print(is_standard_hand(winning_hand))
-
-display_hand(tenpai_hand)
-print(is_tenpai(tenpai_hand))
+test_take_turn_and_check_calls()
