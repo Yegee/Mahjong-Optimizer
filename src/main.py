@@ -1,4 +1,6 @@
 import random
+from colorama import Fore, Style, init
+init(autoreset=True)
 
 class Tile:
     def __init__(self, suit, value):
@@ -31,6 +33,36 @@ class Tile:
     
     def is_honor(self):
         return self.suit == 'honor'
+    
+class Player:
+    def __init__(self, name, hand):
+
+        '''
+        
+        Creates the tile Player
+
+        name: The name of the player is the seat they are in. i.e East, South, West, North.
+        hand: The player hand organized.
+
+        '''
+        self.name = name
+        self.hand = hand
+
+    def show_hand(self):
+        '''
+        
+        Returns the player's hand
+
+        '''
+        return self.hand
+    
+    def show_seat(self):
+        '''
+        
+        Returns the player's seat or name
+        
+        '''
+        
               
 def create_set():
     '''
@@ -73,91 +105,24 @@ def distribute_tiles(board, dice):
     
     '''
 
-    E_hand = []
-    S_hand = []
-    W_hand = []
-    N_hand = []
+    start_index = (dice * 2) % len(board)
+    board = board[start_index:] + board[:start_index]
 
-    E_wall = board[:34]
-    S_wall = board[34:68]
-    W_wall = board[68:102]
-    N_wall = board[102:136]
+    dead_wall = board[-14:]
+    live_wall = board[:-14]
+    #Uses hash to make for simplier coding
+    hands = {p: [] for p in ('E', 'S', 'W', 'N')}
 
+    #Simplified to just calculate the starting indexes
+    for i in range(3):
+        for p in hands:
+            hands[p].extend([live_wall.pop(0) for _ in range(4)])
 
-    deadwall_index = 0
-    starting_index = 0
-    
-    if (dice == 5)or (dice == 9):
+    for p in hands:
+        hands[p].append(live_wall.pop(0))
+        organize_hand(hands[p])
 
-        starting_index = (dice*2)
-        deadwall_index = (starting_index - 1)
-        while deadwall_index < 13:
-            E_wall.insert(0, N_wall.pop(-1))
-            deadwall_index += 1
-            starting_index += 1
-
-        new_board = E_wall + S_wall + W_wall + N_wall
-
-        
-
-    elif (dice == 2) or (dice == 6) or (dice == 10):
-
-        starting_index = (dice*2)
-        deadwall_index = (starting_index - 1)
-        while deadwall_index < 13:
-            S_wall.insert(0, E_wall.pop(-1))
-            deadwall_index += 1
-            starting_index += 1
-
-        new_board = S_wall + W_wall + N_wall + E_wall
-
-            
-    elif (dice == 3) or (dice == 7) or (dice == 11):
-
-        starting_index = (dice*2)
-        deadwall_index = (starting_index - 1)
-        while deadwall_index < 13:
-            W_wall.insert(0, S_wall.pop(-1))
-            deadwall_index += 1
-            starting_index += 1
-        
-        new_board = W_wall + N_wall + E_wall + S_wall
-
-
-    elif (dice == 4) or (dice == 8) or (dice == 12):
-
-        starting_index = (dice*2)
-        deadwall_index = (starting_index - 1)
-        while deadwall_index < 13:
-            N_wall.insert(0, W_wall.pop(-1))
-            deadwall_index += 1
-            starting_index += 1
-
-        new_board = N_wall + E_wall + S_wall + W_wall 
-
-
-    while starting_index != 0:
-            new_board.append(new_board.pop(0))
-            starting_index -= 1
-    
-    for player in range(3):
-
-        for i in range(4): E_hand.append(new_board.pop(0))
-        for i in range(4): S_hand.append(new_board.pop(0))
-        for i in range(4): W_hand.append(new_board.pop(0))
-        for i in range(4): N_hand.append(new_board.pop(0))
-    
-    E_hand.append(new_board.pop(0))
-    S_hand.append(new_board.pop(0))
-    W_hand.append(new_board.pop(0))
-    N_hand.append(new_board.pop(0))
-
-    organize_hand(E_hand)
-    organize_hand(S_hand)
-    organize_hand(W_hand)
-    organize_hand(N_hand)
-
-    return E_hand, S_hand, W_hand, N_hand, new_board
+    return hands['E'], hands['S'], hands['W'], hands['N'], live_wall, dead_wall
 
 def organize_hand(hand):
     '''
@@ -189,8 +154,6 @@ def organize_hand(hand):
         
     hand.sort(key = sort_key)
 
-    return hand
-
 def draw_tile(board, hand):
 
 
@@ -199,6 +162,8 @@ def draw_tile(board, hand):
     Removes the first tile from the board, then adds it to the hand
 
     Inputs: Board of the game, Player's hand
+
+    return None
 
     '''
 
@@ -213,6 +178,36 @@ def discard_tile(hand, tile):
     
     Removes a tile from players hand
 
+    hand: Players hand
+    tile: Tile to discard
+
+    Returns the discarded tile for discard pile 
+
+    '''
+
+    tile_to_discard = next(
+        (
+            t for t in hand
+            if (t.suit == 'honor' and t.value == tile)
+            or (f"{t.value}{t.suit}" == tile)
+        ),
+        None
+    )
+
+    if tile_to_discard:
+        hand.remove(tile_to_discard)
+
+    return tile_to_discard
+
+
+def temp_discard_tile(hand, index):
+    
+    '''
+
+    DELETE LATER
+    
+    A temporary function that will only ask for index to remove
+
     hand:Players hand
     tile: index for tile to discard
 
@@ -220,47 +215,152 @@ def discard_tile(hand, tile):
 
     '''
 
-    return hand.pop(tile-1)
+    tile_to_discard = hand.pop(index)
 
+    return tile_to_discard
+
+
+#Note: Sequences that are 4 or 5 will highlight all of the tiles. i.e, 1c, 2c, 3c, 4c, 5c will have all 5 highlighted. Helps the player know that they have possibly two sequences
+def find_Sequence_or_Triplets(hand):
+    '''
+    
+    Finds all of the triplets and sequences and color coat it for clarity
+    If neither, return normal. Turns the hand to colors respecting if it is a sequence or triplets
+
+    hand: Player's hand
+
+    Return: none
+
+    '''
+
+    labels = {tile: None for tile in hand}
+
+    #Checks for Triplets
+    counted = {}
+    for tile in hand:
+        key = (tile.suit, tile.value)
+        counted[key] = counted.get(key, 0) + 1
+    for tile in hand:
+        if counted.get((tile.suit, tile.value), 0) == 4:
+            labels[tile] = "Kan"
+        elif counted.get((tile.suit, tile.value), 0) == 3:
+            labels[tile] = "Triplet"
+        
+    #Check for sequences 
+    suits = {'c': [], 'l': [], 'b': []}
+    for tile in hand:
+        if tile.suit in suits:
+            suits[tile.suit].append(tile)
+    for suits, tiles in suits.items():
+        tiles.sort(key = lambda t : t.value)
+        values = [t.value for t in tiles]
+
+        # detect every 3-tile consecutive sequence
+        for i in range(len(values) - 2):
+            a, b, c = values[i:i+3]
+            if b == a + 1 and c == b + 1:
+                used = {a, b, c}
+                for t in tiles:
+                    if t.value in used:
+                        # don't overwrite triplets or kans
+                        if labels[t] not in ("Triplet", "Kan"):
+                            labels[t] = "Sequence"
+        
+    return labels
+
+def change_hand_with_color(hand):
+    labels = find_Sequence_or_Triplets(hand)
+    output = []
+
+    for tile in hand:
+        tag = labels[tile]
+        color = {
+            "Triplet": Fore.GREEN,
+            "Kan": Fore.RED,
+            "Sequence": Fore.BLUE
+        }.get(tag, Fore.WHITE)
+
+        output.append(f"{color}{tile}{Style.RESET_ALL}")
+    return output
+
+#Fixes change_hand_with_color
+def display_hand(hand):
+    """
+    Displays the player's hand in color without changing the actual hand objects.
+    """
+    colored_hand = change_hand_with_color(hand)
+    print(" ".join(colored_hand), end = "\n\n")
+    
+#TODO pitch correctly
+def play_game(players, board):
+
+    #Helps the count for the player's turn
+    turn = 0  
+
+    #Draw pitch test
+    while board:
+        current_player = players[turn % 4]
+        if (turn % 4) == 0:
+            print(f"Turn: {turn}")
+
+        draw_tile(board, current_player.hand)
+        discard = random.choice(current_player.hand)
+        current_player.hand.remove(discard)
+        discard_pile.append(random.choice(current_player.hand))
+        display_hand(current_player.hand)
+    
+        
+        turn += 1  # Move to next player`
+
+        
+    
 # Example usage
 if __name__ == "__main__":
     
     board = create_set()
+    discard_pile = []
 
     print("Board: ", board, "\n")
     print("Shuffling board...\n")
     
     shuffle_tiles(board)
 
+    dice = random.randint(2,12)
 
+    print(f"Starting hands:\n"
+        f"East wall: {board[:34]}\n"
+        f"South wall: {board[34:68]}\n"
+        f"West wall: {board[68:102]}\n"
+        f"North wall: {board[102:136]}\n"
+        f"Dice roll: {dice}\n"
+    )
 
-dice = random.randint(2,12)
+    EP, SP, WP, NP, board, deadwall = distribute_tiles(board, dice)
+    players = [
+    Player("East", EP),
+    Player("South", SP),
+    Player("West", WP),
+    Player("North", NP)
+    ]
 
-print(
-    f"East wall: {board[:34]}\n"
-    f"South wall: {board[34:68]}\n"
-    f"West wall: {board[68:102]}\n"
-    f"North wall: {board[102:136]}\n"
-    f"Dice roll: {dice}\n"
-)
+    for i in range(4):
+        print(f"{players[i].name}'s hand: ", end ='')
+        display_hand(players[i].hand)
+        print("\n")
 
-EP, SP, WP, NP, board = distribute_tiles(board, dice)
+    play_game(players, board)
 
-print(
-    f"East Player: {EP}\n\n"
-    f"South Player: {SP}\n\n"
-    f"West Player: {WP}\n\n"
-    f"North Player: {NP}\n\n"
-    f"Board State: {board}\n\n"
-)
+    for i in range(4):
+            print(f"{players[i].name}'s hand: ", end ='')
+            display_hand(players[i].hand)
+    
+    testHand = [
+        Tile('b', 1), Tile('b', 2), Tile('b', 3),       # Sequence (Blue)
+        Tile('b', 4), Tile('b', 1), Tile('b', 1),       # Triplet (Green)
+        Tile('b', 5), Tile('l', 8), Tile('l', 9),       # Sequence (Blue)
+        Tile('honor', 'R'), Tile('honor', 'R'),         # Part of Kan (Red)
+        Tile('honor', 'R'), Tile('honor', 'R') ]
 
-draw_tile(board, EP)
-
-print(f"East Player after Draw{EP}\n\n")
-
-# ToDO: Change this to tile rather than index
-index = int(input("Enter Index for discard: \n"))
-
-discard_tile(EP, index)
-
-print(f"East Player after discard{EP}\n\n")
+    organize_hand(testHand)
+    print(f"Test hand:", end= " ")
+    display_hand(testHand)
