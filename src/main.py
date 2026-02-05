@@ -138,6 +138,13 @@ class Player:
         '''
         self.name = name
         self.hand = hand
+        self.melds = []
+        #Reminder: 
+        # {
+        #     "type": "CHI" | "PON" | "KAN",
+        #     "tiles": [Tile, Tile, Tile] or 4 tiles,
+        #     "from": "East"   # who discarded
+        # }
 
     def show_hand(self):
         '''
@@ -601,9 +608,8 @@ def check_win_with_tile(hand, tile):
             display_hand(players[i].hand)
     
 def test_take_turn_and_check_calls():
-    p0 = Player("East", [])
+    p0 = Player("East", [Tile('honor', 'E')])
 
-    # RON
     p1 = Player("South", [
         Tile('c', 1), Tile('c', 2), Tile('c', 3),
         Tile('c', 4), Tile('c', 5), Tile('c', 6),
@@ -612,24 +618,14 @@ def test_take_turn_and_check_calls():
         Tile('honor', 'E')
     ])
 
-    # PON
-    p2 = Player("West", [
-        Tile('honor', 'E'),
-        Tile('honor', 'E'),
-    ])
-
-    # CHI (next player only)
-    p3 = Player("North", [
-        Tile('c', 1),
-        Tile('c', 2),
-    ])
+    p2 = Player("West", [Tile('honor', 'E'), Tile('honor', 'E')])
+    p3 = Player("North", [])
 
     players = [p0, p1, p2, p3]
     wall = [Tile('honor', 'E')]
-    game = Game(players, wall, [])
+    dead_wall = []  
 
-    game.current_turn = 0
+    game = Game(players, wall,dead_wall)
     game.take_turn()
-
 
 test_take_turn_and_check_calls()
