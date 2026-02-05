@@ -2,6 +2,96 @@ import random
 from colorama import Fore, Style, init
 init(autoreset=True)
 
+class Game:
+    def __init__(self,player, wall, deadwall):
+        self.wall = wall
+        self.dead_wall = deadwall
+        self.players = player
+        self.discard_pile = []
+        self.current_turn = 0
+        self.last_discard = None
+        self.last_discarder = None
+
+    def take_turn(self):
+        player = self.players[self.current_turn]
+
+        draw_tile(self.wall, player.hand)
+
+        #TODO:Delete this and fix up take turn
+        discard = random.choice(player.hand)
+        player.hand.remove(discard)
+
+        self.last_discard = discard
+        self.last_discarder = self.current_turn
+        self.discard_pile.append(discard) 
+
+        print(f"{player.name} discarded {discard}")
+
+
+        #Call check
+        calls = self.detect_calls()
+        if calls:
+            print("Possible calls:", calls)
+        else:
+            print("No calls")
+
+    def detect_calls(self):
+        calls = []
+        tile = self.last_discard
+        for i, player in enumerate(self.players):
+            
+            #If the check is on the current player, skip
+            if i == self.last_discarder:
+                continue
+
+            #Ron Check
+            if check_win_with_tile(player.hand, tile):
+                calls.append(("RON", self.players[i].name))
+
+            #Pon
+            count = sum(1 for t in player.hand if t.suit == tile.suit and t.value == tile.value)
+            if count == 2:
+                calls.append(("PON",  self.players[i].name)), 
+
+            #TODO: Chi
+            #Either Create a for to check what tiles are missing and if found, call chi, or hard find it
+            if i == (self.last_discarder + 1) % len(self.players):
+                chi_options = self.find_chi(player.hand, tile)
+                for option in chi_options:
+                    calls.append(("CHI", player.name, option))
+        
+        return calls
+    
+    def find_chi(self, hand, discard):
+        if discard.suit == 'honor':
+            return []
+                
+        #Takes Value of discard for ease of call
+        suit = discard.suit
+        val = discard.value
+
+
+        #Takes tiles in hand that are the same suit.
+        check_chi = [t.value for t in hand if t.suit == suit]
+        counts = {v: check_chi.count(v) for v in set(check_chi)}
+
+        sequences = []
+
+        # Pattern: (x-2, x-1, x)
+        if counts.get(val - 2, 0) > 0 and counts.get(val - 1, 0) > 0:
+            sequences.append([Tile(val - 2, suit), Tile(val - 1, suit), Tile(val, suit)])
+
+        # Pattern: (x-1, x, x+1)
+        if counts.get(val - 1, 0) > 0 and counts.get(val + 1, 0) > 0:
+            sequences.append([Tile(val - 1, suit), Tile(val, suit), Tile(val + 1, suit)])
+
+        # Pattern: (x, x+1, x+2)
+        if counts.get(val + 1, 0) > 0 and counts.get(val + 2, 0) > 0:
+            sequences.append([Tile(val, suit), Tile(val + 1, suit), Tile(val + 2, suit)])
+
+        return sequences
+    
+
 class Tile:
     def __init__(self, suit, value):
 
@@ -34,6 +124,7 @@ class Tile:
     def is_honor(self):
         return self.suit == 'honor'
     
+    
 class Player:
     def __init__(self, name, hand):
 
@@ -47,6 +138,13 @@ class Player:
         '''
         self.name = name
         self.hand = hand
+        self.melds = []
+        #Reminder: 
+        # {
+        #     "type": "CHI" | "PON" | "KAN",
+        #     "tiles": [Tile, Tile, Tile] or 4 tiles,
+        #     "from": "East"   # who discarded
+        # }
 
     def show_hand(self):
         '''
@@ -62,6 +160,7 @@ class Player:
         Returns the player's seat or name
         
         '''
+        return self.name
         
               
 def create_set():
@@ -310,12 +409,166 @@ def play_game(players, board):
         display_hand(current_player.hand)
     
         
-        turn += 1  # Move to next player`
+        turn += 1  # Move to next player
 
-        
+#Counts the hand efficiently for tiles
+def hand_to_counts(hand):
+
+    '''
     
+    Counts the tiles in hand to make makes a list of numbers for easier counting for checking for valid winning hand
+
+    hand: The hand with 14 tiles.
+
+    returns a Hash of tiles and the amount.
+
+    
+    '''
+
+    counts = {}
+    for t in hand:
+        key = (t.suit, t.value)
+        counts[key] = counts.get(key, 0) + 1
+    return counts
+
+def is_standard_hand(hand):
+    '''
+
+    Checks if the hand is a standard hand to win. As of now, it checks if the hand has a standard full 14 tile hand that consists of full sequences or triples 
+
+    hand: The hand that that possibly has 14 tiles. If hand does not have 14 tiles, return False
+
+    returns Boolean
+
+    
+    '''
+
+    if len(hand) != 14:
+        return False
+    
+    counts = hand_to_counts(hand)
+
+    for tile in list(counts.keys()):
+        #This is for checking every possible pair in the hand. If there's not more than 2, it will ignore the tile and go next
+        if counts[tile] >= 2:
+            counts[tile] -= 2
+
+            if check_with_melds(counts):
+                return True
+
+            counts[tile] += 2  # restore and try next
+
+    return False
+
+# --- helper: deterministic order for suits ---
+_SUITS_ORDER = {'l': 0, 'c': 1, 'b': 2, 'honor': 3}
+
+def _tile_sort_key(tile):
+    suit, value = tile
+    val_key = value if isinstance(value, int) else 0
+    return (_SUITS_ORDER.get(suit, 99), val_key)
+
+def check_with_melds(counts):
+    '''
+    
+    Checks if hand has valid sequences/triplets. If a triplet/sequence/Kan is found, uses recursive with the rest of the count
+    until there is nothing left or is not a valid hand
+
+    count: The tiles in the player hands that does not include the pair
+
+    returns Boolean
+    
+    '''
+    #This checks if there is anything else to check
+    if sum(counts.values()) == 0:
+        return True
+    
+    #Picks the top tile to see if there is a sequence or triplet
+    # pick the smallest tile (deterministic) that still has count > 0
+    nonzero = [t for t, c in counts.items() if c > 0]
+    if not nonzero:
+        return True
+    tile = min(nonzero, key=_tile_sort_key)
+    suit, value = tile
+
+    #Checks Kan
+    if counts[tile] == 4:
+        counts[tile] -= 4
+        if check_with_melds(counts):
+            return True
+        counts[tile] += 4
+    
+    # Check triplet
+    if counts[tile] >= 3:
+        counts[tile] -= 3
+        if check_with_melds(counts):
+            return True
+        counts[tile] += 3
+
+    # Check sequence (only if suit tile)
+    if suit != "honor" and isinstance(value, int) and value <= 7:
+        t2 = (suit, value + 1)
+        t3 = (suit, value + 2)
+        if counts.get(t2, 0) > 0 and counts.get(t3, 0) > 0:
+            counts[tile] -= 1
+            counts[t2] -= 1
+            counts[t3] -= 1
+            if check_with_melds(counts):
+                return True
+            counts[tile] += 1
+            counts[t2] += 1
+            counts[t3] += 1
+
+    return False
+
+def is_tenpai(hand):
+    '''
+    
+    Checks if the player is one tile away from winning
+
+    hand: The player's hand
+
+    Returns the waits if hand is possible to win with
+    
+    '''
+    waits = []
+
+    for suit in ['c', 'l', 'b', 'honor']:
+        if suit == 'honor':
+            possible = ['E','S','W','N', 'WH', 'G', 'R']
+        else:
+            possible = range(1,10)
+
+        for tile in possible:
+            fake = Tile(suit, tile)
+            if check_win_with_tile(hand,fake):
+                waits.append(fake)
+    if len(waits) == 0:
+        return "Not valid"
+
+    # Sort waits by suit priority, then tile value
+    waits.sort(key=lambda t: (
+        _SUITS_ORDER[t.suit],
+        t.value if isinstance(t.value, int) else 0
+    ))     
+    return waits
+
+def check_win_with_tile(hand, tile):
+    '''
+
+    Adds the tile to the hand and tests it to see if it wins
+    
+    hand: The player's hand
+    tile: The tile that is considered to win with
+
+    return Boolean
+    '''
+    
+    test_hand = hand[:] + [tile]
+    return is_standard_hand(test_hand)
+
 # Example usage
-if __name__ == "__main__":
+# if __name__ == "__main__":
     
     board = create_set()
     discard_pile = []
@@ -354,13 +607,25 @@ if __name__ == "__main__":
             print(f"{players[i].name}'s hand: ", end ='')
             display_hand(players[i].hand)
     
-    testHand = [
-        Tile('b', 1), Tile('b', 2), Tile('b', 3),       # Sequence (Blue)
-        Tile('b', 4), Tile('b', 1), Tile('b', 1),       # Triplet (Green)
-        Tile('b', 5), Tile('l', 8), Tile('l', 9),       # Sequence (Blue)
-        Tile('honor', 'R'), Tile('honor', 'R'),         # Part of Kan (Red)
-        Tile('honor', 'R'), Tile('honor', 'R') ]
+def test_take_turn_and_check_calls():
+    p0 = Player("East", [Tile('honor', 'E')])
 
-    organize_hand(testHand)
-    print(f"Test hand:", end= " ")
-    display_hand(testHand)
+    p1 = Player("South", [
+        Tile('c', 1), Tile('c', 2), Tile('c', 3),
+        Tile('c', 4), Tile('c', 5), Tile('c', 6),
+        Tile('b', 2), Tile('b', 3), Tile('b', 4),
+        Tile('l', 7), Tile('l', 8), Tile('l', 9),
+        Tile('honor', 'E')
+    ])
+
+    p2 = Player("West", [Tile('honor', 'E'), Tile('honor', 'E')])
+    p3 = Player("North", [])
+
+    players = [p0, p1, p2, p3]
+    wall = [Tile('honor', 'E')]
+    dead_wall = []  
+
+    game = Game(players, wall,dead_wall)
+    game.take_turn()
+
+test_take_turn_and_check_calls()
