@@ -17,8 +17,7 @@ class Game:
 
         draw_tile(self.wall, player.hand)
 
-        #Temporary, Delete Later
-
+        #TODO:Delete this and fix up take turn
         discard = random.choice(player.hand)
         player.hand.remove(discard)
 
@@ -52,9 +51,45 @@ class Game:
             #Pon
             count = sum(1 for t in player.hand if t.suit == tile.suit and t.value == tile.value)
             if count == 2:
-                calls.append(("PON",  self.players[i].name))
+                calls.append(("PON",  self.players[i].name)), 
+
+            #TODO: Chi
+            #Either Create a for to check what tiles are missing and if found, call chi, or hard find it
+            if i == (self.last_discarder + 1) % len(self.players):
+                chi_options = self.find_chi(player.hand, tile)
+                for option in chi_options:
+                    calls.append(("CHI", player.name, option))
         
         return calls
+    
+    def find_chi(self, hand, discard):
+        if discard.suit == 'honor':
+            return []
+                
+        #Takes Value of discard for ease of call
+        suit = discard.suit
+        val = discard.value
+
+
+        #Takes tiles in hand that are the same suit.
+        check_chi = [t.value for t in hand if t.suit == suit]
+        counts = {v: check_chi.count(v) for v in set(check_chi)}
+
+        sequences = []
+
+        # Pattern: (x-2, x-1, x)
+        if counts.get(val - 2, 0) > 0 and counts.get(val - 1, 0) > 0:
+            sequences.append([Tile(val - 2, suit), Tile(val - 1, suit), Tile(val, suit)])
+
+        # Pattern: (x-1, x, x+1)
+        if counts.get(val - 1, 0) > 0 and counts.get(val + 1, 0) > 0:
+            sequences.append([Tile(val - 1, suit), Tile(val, suit), Tile(val + 1, suit)])
+
+        # Pattern: (x, x+1, x+2)
+        if counts.get(val + 1, 0) > 0 and counts.get(val + 2, 0) > 0:
+            sequences.append([Tile(val, suit), Tile(val + 1, suit), Tile(val + 2, suit)])
+
+        return sequences
     
 
 class Tile:
@@ -118,6 +153,7 @@ class Player:
         Returns the player's seat or name
         
         '''
+        return self.name
         
               
 def create_set():
@@ -565,8 +601,9 @@ def check_win_with_tile(hand, tile):
             display_hand(players[i].hand)
     
 def test_take_turn_and_check_calls():
-    p0 = Player("East", [Tile('honor', 'E')])
+    p0 = Player("East", [])
 
+    # RON
     p1 = Player("South", [
         Tile('c', 1), Tile('c', 2), Tile('c', 3),
         Tile('c', 4), Tile('c', 5), Tile('c', 6),
@@ -575,14 +612,24 @@ def test_take_turn_and_check_calls():
         Tile('honor', 'E')
     ])
 
-    p2 = Player("West", [Tile('honor', 'E'), Tile('honor', 'E')])
-    p3 = Player("North", [])
+    # PON
+    p2 = Player("West", [
+        Tile('honor', 'E'),
+        Tile('honor', 'E'),
+    ])
+
+    # CHI (next player only)
+    p3 = Player("North", [
+        Tile('c', 1),
+        Tile('c', 2),
+    ])
 
     players = [p0, p1, p2, p3]
     wall = [Tile('honor', 'E')]
-    dead_wall = []  
+    game = Game(players, wall, [])
 
-    game = Game(players, wall,dead_wall)
+    game.current_turn = 0
     game.take_turn()
+
 
 test_take_turn_and_check_calls()
